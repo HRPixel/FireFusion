@@ -372,7 +372,6 @@ def train_seg(i=0, logger=None, args=None, cfg=None):
     )
 
     n_classes = cfg.num_classes
-    cropsize = cfg.cropsize
     ds = build_seg_dataset(cfg, split='train', method=cfg.method_name)
     dl = DataLoader(
         ds,
@@ -407,6 +406,10 @@ def train_seg(i=0, logger=None, args=None, cfg=None):
         power=0.9,
     )
 
+    msg_iter = 10
+    loss_avg = []
+    st = glob_st = time.time()
+
     diter = iter(dl)
     for it in range(20000):
         try:
@@ -424,14 +427,45 @@ def train_seg(i=0, logger=None, args=None, cfg=None):
         out, out16 = net(im)
         loss_p = criteria_p(out, lb)
         loss_16 = criteria_16(out16, lb)
-        loss = loss_p + loss_16
+        loss = loss_p + 0.75 * loss_16
         loss.backward()
         optim.step()
 
-        if logger is not None:
-            logger.info(f"[train_seg] round={i}, iter={it}, loss={loss.item():.6f}")
+        loss_avg.append(loss.item())
+
+        if (it + 1) % msg_iter == 0:
+            ed = time.time()
+            t_intv = ed - st
+            glob_t_intv = ed - glob_st
+            eta_sec = int((20000 - (it + 1)) * (glob_t_intv / (it + 1)))
+            eta = str(datetime.timedelta(seconds=eta_sec))
+
+            msg = ', '.join([
+                'it: {it}/{max_it}',
+                'lr: {lr:.6f}',
+                'loss: {loss:.4f}',
+                'eta: {eta}',
+                'time: {time:.4f}',
+            ]).format(
+                it=it + 1,
+                max_it=20000,
+                lr=optim.lr,
+                loss=sum(loss_avg) / len(loss_avg),
+                eta=eta,
+                time=t_intv,
+            )
+
+            if logger is not None:
+                logger.info(msg)
+
+            loss_avg = []
+            st = ed
 
     torch.save(net.state_dict(), load_path)
+    if logger is not None:
+        logger.info(f'Segmentation Model Training done~, The Model is saved to: {load_path}')
+        logger.info('\n')
+
     net.cpu()
 
 
@@ -994,13 +1028,29 @@ if __name__ == '__main__':
     args = parse_args()
     cfg = get_dataset_config(args.dataset_name, args.dataset_root)
 
+    logpath = './logs'
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    os.makedirs('./logs', exist_ok=True)
-    fh = logging.FileHandler('./logs/train.log')
-    logger.addHandler(fh)
+    setup_logger(logpath)
+
+    logger.info('Training start!')
+    logger.info(f'dataset_name: {cfg.dataset_name}')
+    logger.info(f'dataset_root: {cfg.root}')
+    logger.info(f'cropsize: {cfg.cropsize}')
+    logger.info(f'num_classes: {cfg.num_classes}')
+    logger.info('\n')
 
     for i in range(4):
-        train_fusion(num=i, logger=logger, args=args, cfg=cfg)
-        run_fusion(type='train', logger=logger, args=args, cfg=cfg)
-        train_seg(i=i, logger=logger, args=args, cfg=cfg)
+        logger.info(f'========== Round {i + 1}/4 : train_fusion ==========')
+        train_fusion(i, logger, args, cfg)
+        print("|{0} Train Fusion Model Successfully~!".format(i + 1))
+
+        logger.info(f'========== Round {i + 1}/4 : run_fusion(train) ==========')
+        run_fusion('train', logger, args, cfg)
+        print("|{0} Fusion Image Successfully~!".format(i + 1))
+
+        logger.info(f'========== Round {i + 1}/4 : train_seg ==========')
+        train_seg(i, logger, args, cfg)
+        print("|{0} Train Segmentation Model Successfully~!".format(i + 1))
+
+    logger.info("Training Done!")
+    print("training Done!")
