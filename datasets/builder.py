@@ -19,8 +19,63 @@ def get_dataset_config(dataset_name: str, dataset_root: str | None = None) -> An
     raise NotImplementedError(f"Unsupported dataset_name: {dataset_name}")
 
 
+# def build_fusion_dataset(cfg, split: str, require_label: bool = True):
+#     if cfg.dataset_name == "flame3":
+#         return Flame3FusionDataset(
+#             root=cfg.root,
+#             split=split,
+#             visible_dir=cfg.visible_dir,
+#             infrared_dir=cfg.infrared_dir,
+#             label_dir=cfg.label_dir,
+#             suffixes=cfg.image_suffixes,
+#             require_label=require_label,
+#             synthesize_dummy_label=cfg.synthesize_dummy_label,
+#             ignore_index=cfg.ignore_index,
+#         )
+#     if cfg.dataset_name == "msrs":
+#         return MSRSFusionDataset(split)
+#     raise NotImplementedError(f"Unsupported dataset_name: {cfg.dataset_name}")
+
+
+# def build_seg_dataset(cfg, split: str, method: str = "Fusion"):
+#     if cfg.dataset_name == "flame3":
+#         return Flame3SegDataset(
+#             root=cfg.root,
+#             split=split,
+#             method=method,
+#             cropsize=cfg.cropsize,
+#             info_json_path=cfg.info_json,
+#             assume_train_ids=cfg.assume_train_ids,
+#             ignore_index=cfg.ignore_index,
+#         )
+#     if cfg.dataset_name == "msrs":
+#         return MSRSSegDataset(
+#             cfg.root,
+#             cropsize=list(cfg.cropsize),
+#             mode=split,
+#             Method=method,
+#         )
+#     raise NotImplementedError(f"Unsupported dataset_name: {cfg.dataset_name}")
+
+
+# def get_fusion_output_dir(cfg, split: str, method: str = "Fusion") -> str:
+#     if cfg.dataset_name == "flame3":
+#         out_dir = os.path.join(cfg.root, cfg.fusion_dir, split)
+#     elif cfg.dataset_name == "msrs":
+#         out_dir = os.path.join(cfg.root, "Fusion", split, "MSRS")
+#     else:
+#         raise NotImplementedError(f"Unsupported dataset_name: {cfg.dataset_name}")
+
+#     os.makedirs(out_dir, exist_ok=True)
+#     return out_dir
+
+# ==============================
+# 兼容补丁说明（保留原代码）
+# ==============================
+
 def build_fusion_dataset(cfg, split: str, require_label: bool = True):
-    if cfg.dataset_name == "flame3":
+    name = cfg.dataset_name.lower()
+    if name == "flame3":
         return Flame3FusionDataset(
             root=cfg.root,
             split=split,
@@ -32,13 +87,14 @@ def build_fusion_dataset(cfg, split: str, require_label: bool = True):
             synthesize_dummy_label=cfg.synthesize_dummy_label,
             ignore_index=cfg.ignore_index,
         )
-    if cfg.dataset_name == "msrs":
+    if name == "msrs":
         return MSRSFusionDataset(split)
     raise NotImplementedError(f"Unsupported dataset_name: {cfg.dataset_name}")
 
 
 def build_seg_dataset(cfg, split: str, method: str = "Fusion"):
-    if cfg.dataset_name == "flame3":
+    name = cfg.dataset_name.lower()
+    if name == "flame3":
         return Flame3SegDataset(
             root=cfg.root,
             split=split,
@@ -48,7 +104,7 @@ def build_seg_dataset(cfg, split: str, method: str = "Fusion"):
             assume_train_ids=cfg.assume_train_ids,
             ignore_index=cfg.ignore_index,
         )
-    if cfg.dataset_name == "msrs":
+    if name == "msrs":
         return MSRSSegDataset(
             cfg.root,
             cropsize=list(cfg.cropsize),
@@ -59,9 +115,10 @@ def build_seg_dataset(cfg, split: str, method: str = "Fusion"):
 
 
 def get_fusion_output_dir(cfg, split: str, method: str = "Fusion") -> str:
-    if cfg.dataset_name == "flame3":
+    name = cfg.dataset_name.lower()
+    if name == "flame3":
         out_dir = os.path.join(cfg.root, cfg.fusion_dir, split)
-    elif cfg.dataset_name == "msrs":
+    elif name == "msrs":
         out_dir = os.path.join(cfg.root, "Fusion", split, "MSRS")
     else:
         raise NotImplementedError(f"Unsupported dataset_name: {cfg.dataset_name}")

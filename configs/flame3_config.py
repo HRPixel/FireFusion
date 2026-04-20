@@ -39,9 +39,43 @@ class MSRSConfig:
     cropsize: Tuple[int, int]
 
 
+# def get_flame3_config(root: str = "./FLAME3") -> DatasetConfig:
+#     return DatasetConfig(
+#         dataset_name="FLAME3",
+#         root=root,
+#         visible_dir="Visible",
+#         infrared_dir="Infrared",
+#         label_dir="Label",
+#         fusion_dir="Fusion",
+#         method_name="Fusion",
+#         num_classes=3,
+#         ignore_index=255,
+#         info_json="./datasets/meta/flame3_info.json",
+#         assume_train_ids=True,
+#         cropsize=(640, 512),
+#         splits=("train", "val", "test"),
+#         image_suffixes=(".bmp", ".tif", ".tiff", ".jpg", ".jpeg", ".png"),
+#         synthesize_dummy_label=True,
+#     )
+
+
+# def get_msrs_config(root: str = "./MSRS") -> MSRSConfig:
+#     return MSRSConfig(
+#         dataset_name="MSRS",
+#         root=root,
+#         method_name="Fusion",
+#         num_classes=9,
+#         ignore_index=255,
+#         cropsize=(640, 512),
+#     )
+
+# ==============================
+# 兼容补丁说明（保留原代码）
+# ==============================
+
 def get_flame3_config(root: str = "./FLAME3") -> DatasetConfig:
     return DatasetConfig(
-        dataset_name="FLAME3",
+        dataset_name="flame3",
         root=root,
         visible_dir="Visible",
         infrared_dir="Infrared",
@@ -61,10 +95,10 @@ def get_flame3_config(root: str = "./FLAME3") -> DatasetConfig:
 
 def get_msrs_config(root: str = "./MSRS") -> MSRSConfig:
     return MSRSConfig(
-        dataset_name="MSRS",
+        dataset_name="msrs",
         root=root,
         method_name="Fusion",
         num_classes=9,
         ignore_index=255,
-        cropsize=(640, 512),
+        cropsize=(640, 480),
     )

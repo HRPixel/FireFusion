@@ -618,6 +618,20 @@ def evaluate(
 
     cfg = get_dataset_config(dataset_name, dataset_root)
 
+    # ==============================
+    # 兼容补丁说明（保留原代码）
+    # ==============================
+    #
+    # if cropsize is None:
+    #    # 注意：这里取值方式要与你全项目中 cropsize 的顺序保持一致
+    #     # 如果你的约定是 (W, H)，则这里可使用 cfg.cropsize[1]
+    #    # 如果你的约定是 (H, W)，则这里可使用 cfg.cropsize[0]
+    #     cropsize = cfg.cropsize[1]
+
+    # # 推荐显存不足时的评估参数：
+    # scales = [1.0]
+    # flip = False
+
     logger.info(f"dataset_name: {cfg.dataset_name}")
     logger.info(f"dataset_root: {cfg.root}")
     logger.info(f"split       : {split}")

@@ -318,3 +318,15 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(args)
+
+    # ==============================
+# 兼容补丁说明（保留原代码）
+# ==============================
+#
+# 当前 test.py 已基本兼容 Python 3.12 / PyTorch 2.8 / CUDA 12.8
+# 若仍报错，优先检查以下几项：
+# 1. configs/flame3_config.py 的 dataset_name 是否与 builder.py 分支一致
+# 2. dataset_root 是否包含 Visible / Infrared / Label / Fusion 完整目录
+# 3. model_path 是否存在，且对应的是新的 fusion_model.pth
+# 4. FLAME3 图像尺寸是否在 dataloader 中保持 RGB / IR / Label 三者一致
+# 5. 若 split='test' 且无标签，请确认 synthesize_dummy_label=True
