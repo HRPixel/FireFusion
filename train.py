@@ -678,14 +678,34 @@ def train_fusion(num=0, logger=None, args=None, cfg=None):
         pin_memory=True,
         drop_last=True,
     )
+    train_loader.n_iter = len(train_loader)
 
     criteria_fusion = Fusionloss()
     crop_w, crop_h = cfg.cropsize
     n_min = args.batch_size * crop_w * crop_h // 16
-    criteria_seg = OhemCELoss(thresh=0.75, n_min=n_min, ignore_lb=cfg.ignore_index).to(device)
+    criteria_seg = OhemCELoss(
+        thresh=0.75,
+        n_min=n_min,
+        ignore_lb=cfg.ignore_index
+    ).to(device)
+
+    msg_iter = 10
+    loss_total_avg = []
+    loss_fusion_avg = []
+    loss_seg_avg = []
+    st = glob_st = time.time()
+
+    if logger is not None:
+        logger.info(f"Training Fusion Model start~ [round={num}]")
 
     for epo in range(args.epochs):
+        lr_this_epo = lr_start * (0.75 ** max(epo - 1, 0))
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr_this_epo
+
         for it, (image_vis, image_ir, label, name) in enumerate(train_loader):
+            fusionmodel.train()
+
             image_vis = image_vis.to(device, non_blocking=True)
             image_ir = image_ir.to(device, non_blocking=True)
             label = label.to(device, non_blocking=True)
@@ -700,12 +720,17 @@ def train_fusion(num=0, logger=None, args=None, cfg=None):
                 )
             )
 
+            ones = torch.ones_like(fusion_image)
+            zeros = torch.zeros_like(fusion_image)
+            fusion_image = torch.where(fusion_image > ones, ones, fusion_image)
+            fusion_image = torch.where(fusion_image < zeros, zeros, fusion_image)
+
             optimizer.zero_grad()
             loss_fusion, loss_in, loss_grad = criteria_fusion(
                 image_vis_ycrcb, image_ir, label, logits, num
             )
 
-            seg_loss_value = 0.0
+            seg_loss_value = torch.tensor(0.0, device=device)
             if num > 0 and segmodel is not None:
                 out, mid = segmodel(fusion_image)
                 loss_seg = criteria_seg(out, label.long())
@@ -715,13 +740,52 @@ def train_fusion(num=0, logger=None, args=None, cfg=None):
             loss_total.backward()
             optimizer.step()
 
-            if logger is not None:
-                logger.info(
-                    f"[train_fusion] round={num}, epoch={epo}, iter={it}, "
-                    f"loss_total={loss_total.item():.6f}, loss_fusion={loss_fusion.item():.6f}"
+            loss_total_avg.append(loss_total.item())
+            loss_fusion_avg.append(loss_fusion.item())
+            loss_seg_avg.append(seg_loss_value.item())
+
+            now_it = train_loader.n_iter * epo + it + 1
+            max_it = train_loader.n_iter * args.epochs
+
+            if now_it % msg_iter == 0:
+                ed = time.time()
+                t_intv = ed - st
+                glob_t_intv = ed - glob_st
+                eta_sec = int((max_it - now_it) * (glob_t_intv / max(now_it, 1)))
+                eta = str(datetime.timedelta(seconds=eta_sec))
+
+                msg = ', '.join([
+                    'step: {it}/{max_it}',
+                    'lr: {lr:.6f}',
+                    'loss_total: {loss_total:.4f}',
+                    'loss_fusion: {loss_fusion:.4f}',
+                    'loss_seg: {loss_seg:.4f}',
+                    'eta: {eta}',
+                    'time: {time:.4f}',
+                ]).format(
+                    it=now_it,
+                    max_it=max_it,
+                    lr=optimizer.param_groups[0]['lr'],
+                    loss_total=sum(loss_total_avg) / len(loss_total_avg),
+                    loss_fusion=sum(loss_fusion_avg) / len(loss_fusion_avg),
+                    loss_seg=sum(loss_seg_avg) / len(loss_seg_avg),
+                    eta=eta,
+                    time=t_intv,
                 )
 
+                if logger is not None:
+                    logger.info(msg)
+
+                loss_total_avg = []
+                loss_fusion_avg = []
+                loss_seg_avg = []
+                st = ed
+
     torch.save(fusionmodel.state_dict(), modelpth)
+    if logger is not None:
+        logger.info(f"Fusion Model Save to: {modelpth}")
+        logger.info('\n')
+
     fusionmodel.cpu()
     if segmodel is not None:
         segmodel.cpu()
