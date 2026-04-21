@@ -124,18 +124,28 @@ class Flame3SegDataset(Dataset):
         fusion_path, label_path, fn = self.samples[idx]
 
         img = Image.open(fusion_path).convert("RGB")
-        label = np.array(Image.open(label_path))
+        label = Image.open(label_path)
+
+        # 一定要保证在 transform 前，label 还是 PIL.Image
+        if self.trans_train is not None:
+            im_lb = dict(im=img, lb=label)
+            im_lb = self.trans_train(im_lb)
+            img, label = im_lb["im"], im_lb["lb"]
+
+        # img 转 tensor
+        img = self.to_tensor(img)
+
+        # label 在 transform 之后再转 numpy
+        label = np.array(label)
 
         if label.ndim == 3:
             label = label[..., 0]
 
+        # 若标签不是 trainId，再做映射
         if not self.assume_train_ids:
             label = convert_label_ids(label, self.lb_map)
 
-        if self.trans_train is not None:
-            img, label = self.trans_train(img, label)
-
-        img = self.to_tensor(img)
         label = label.astype(np.int64)
         label = np.expand_dims(label, axis=0)
+
         return img, label, fn

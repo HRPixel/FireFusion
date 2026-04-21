@@ -395,6 +395,8 @@ def train_seg(i=0, logger=None, args=None, cfg=None):
     criteria_p = OhemCELoss(thresh=0.7, n_min=n_min, ignore_lb=ignore_idx).to(device)
     criteria_16 = OhemCELoss(thresh=0.7, n_min=n_min, ignore_lb=ignore_idx).to(device)
 
+    it_start = i * 20000
+
     optim = Optimizer(
         model=net,
         lr0=1e-2,
@@ -404,6 +406,7 @@ def train_seg(i=0, logger=None, args=None, cfg=None):
         warmup_start_lr=1e-5,
         max_iter=80000,
         power=0.9,
+        it=it_start,
     )
 
     msg_iter = 10
