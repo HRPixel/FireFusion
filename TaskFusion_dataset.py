@@ -94,24 +94,3 @@ class Fusion_dataset(Dataset):
 
     def __len__(self):
         return self.length
-
-# if __name__ == '__main__':
-    # data_dir = '/data1/yjt/MFFusion/dataset/'
-    # train_dataset = MF_dataset(data_dir, 'train', have_label=True)
-    # print("the training dataset is length:{}".format(train_dataset.length))
-    # train_loader = DataLoader(
-    #     dataset=train_dataset,
-    #     batch_size=2,
-    #     shuffle=True,
-    #     num_workers=2,
-    #     pin_memory=True,
-    #     drop_last=True,
-    # )
-    # train_loader.n_iter = len(train_loader)
-    # for it, (image_vis, image_ir, label) in enumerate(train_loader):
-    #     if it == 5:
-    #         image_vis.numpy()
-    #         print(image_vis.shape)
-    #         image_ir.numpy()
-    #         print(image_ir.shape)
-    #         break
